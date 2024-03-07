@@ -1,13 +1,13 @@
 import { Permit, SecretNetworkClient, Wallet } from "secretjs";
 import ISecretNetworkSmartContract from "./ISecretNetworkSmartContract";
 
-export type Address = `0x${string}`;
+export type Address = string;
 
 interface Props {
   chainId: string;
   client: SecretNetworkClient;
   contract: ISecretNetworkSmartContract;
-  wallet: Wallet;
+  // wallet: Wallet;
 }
 
 interface PublicKeyResponse {
@@ -25,14 +25,14 @@ interface GetFileIdsResponse {
 class SecretDocumentSmartContract {
   private client: SecretNetworkClient;
   private contract: ISecretNetworkSmartContract;
-  private wallet: Wallet;
+  // private wallet: Wallet;
   private chainId: string;
 
-  constructor({ chainId, client, contract, wallet }: Props) {
+  constructor({ chainId, client, contract /*, wallet */ }: Props) {
     this.chainId = chainId;
     this.client = client;
     this.contract = contract;
-    this.wallet = wallet;
+    // this.wallet = wallet;
   }
 
   async getPublicKey(): Promise<Uint8Array> {
@@ -101,6 +101,7 @@ class SecretDocumentSmartContract {
     return JSON.parse(res.payload);
   }
 
+  /*
   async generatePermit(): Promise<Permit> {
     return await this.client.utils.accessControl.permit.sign(
       this.wallet.address,
@@ -127,6 +128,7 @@ class SecretDocumentSmartContract {
       },
     );
   }
+  */
 }
 
 export default SecretDocumentSmartContract;

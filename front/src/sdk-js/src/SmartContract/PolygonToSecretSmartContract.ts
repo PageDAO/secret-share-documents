@@ -9,23 +9,27 @@ import {
   GasToken,
 } from "@axelar-network/axelarjs-sdk";
 
+import { WalletClient } from 'viem';
+
 interface Props {
   secretContract: ISecretNetworkSmartContract;
-  viemClient: ViemClient;
+  walletClient: WalletClient;
 }
 
-class PolygonToSecretSmartContrat {
+class PolygonToSecretSmartContract {
   secretContract: ISecretNetworkSmartContract;
-  viemClient: ViemClient;
+  polygonToSecret: IPolygonSmartContract;
+  walletClient: WalletClient;
 
-  constructor({ secretContract, viemClient }: Props) {
-    this.viemClient = viemClient;
+  constructor({ secretContract, polygonToSecret, walletClient }: Props) {
+    this.walletClient = walletClient;
     this.secretContract = secretContract;
+    this.polygonToSecret = polygonToSecret;
   }
 
   async getEstimateFee(): Promise<AxelarQueryAPIFeeResponse> {
     const axelar = new AxelarQueryAPI({
-      environment: Environment.TESTNET,
+      environment: Environment.MAINNET,
     });
 
     const gmpParams = {
@@ -37,7 +41,7 @@ class PolygonToSecretSmartContrat {
 
     return (await axelar.estimateGasFee(
       EvmChain.POLYGON,
-      "secret",
+      "secret-snip",
       GasToken.MATIC,
       BigInt(100000),
       "auto",
@@ -51,10 +55,14 @@ class PolygonToSecretSmartContrat {
 
     return await this.viemClient.writeContract({
       functionName: "send",
-      args: ["secret", this.secretContract.address, message],
+      args: [
+        "secret-snip", 
+        this.secretContract.address, 
+        message
+      ],
       value: this.viemClient.formatEther(BigInt(gasEstimate.executionFee)),
     });
   }
 }
 
-export default PolygonToSecretSmartContrat;
+export default PolygonToSecretSmartContract;

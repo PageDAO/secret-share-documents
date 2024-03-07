@@ -16,7 +16,7 @@ import IViemWallet from "./IViemWallet";
 
 interface Props {
   chain: Chain;
-  walletConfig: IViemWallet;
+  walletClient: WalletClient;
   contract: IPolygonSmartContract;
 }
 
@@ -32,10 +32,10 @@ class ViemClient {
   publicClient: PublicClient<Transport, Chain>;
   contract: IPolygonSmartContract;
 
-  constructor({ chain, walletConfig, contract }: Props) {
+  constructor({ chain, walletClient, contract }: Props) {
     this.chain = chain;
     this.contract = contract;
-    this.walletClient = this.setupWallet(walletConfig);
+    this.walletClient = walletClient;
     this.publicClient = createPublicClient<Transport, Chain>({
       chain: this.chain,
       transport: http(),
@@ -46,28 +46,6 @@ class ViemClient {
     return this.contract;
   }
 
-  public setupWallet(config: IViemWallet) {
-    /**
-     * EVM Wallet
-     */
-    if (config?.client) {
-      return config.client;
-    }
-
-    /**
-     * Local Account
-     * @see https://viem.sh/docs/clients/wallet#local-accounts-private-key-mnemonic-etc
-     */
-    if (config?.mnemonic) {
-      return this.createWalletWithAccount(mnemonicToAccount(config.mnemonic));
-    }
-
-    if (config?.privateKey) {
-      return this.createWalletWithAccount(
-        privateKeyToAccount(config.privateKey),
-      );
-    }
-  }
 
   public createWalletWithAccount(account: PrivateKeyAccount | HDAccount) {
     return createWalletClient({

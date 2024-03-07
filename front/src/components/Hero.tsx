@@ -10,10 +10,74 @@ import { getConfig } from "../config/config";
 import { NetworkEnum } from "@/config/types";
 import PolygonToSecret from "../contracts/ABI/PolygonToSecret.json";
 
+import { utils } from 'ethers';
+
+import {
+  AxelarQueryAPI,
+  AxelarQueryAPIFeeResponse,
+  Environment,
+  EvmChain,
+  GasToken,
+} from "@axelar-network/axelarjs-sdk";
+
+import ECDHEncryption from "../sdk-js/src/StoreDocument/Encryption/ECDHEncryption";
+import SecretDocumentSmartContract from "../sdk-js/src/SmartContract/SecretDocumentSmartContract";
+import { SecretNetworkClient } from "secretjs";
+
+import Config from "../sdk-js/src/Config";
+import FakeStorage from "../sdk-js/src/StoreDocument/Storage/FakeStorage";
+
+import SymmetricKeyEncryption from "../sdk-js/src/StoreDocument/Encryption/SymmetricKeyEncryption";
+
+function generateSymmetricKey() {
+  return SymmetricKeyEncryption.generate();
+}
+
+async function getEstimateFee(
+  secretContract: string,
+  polygonContract: string,
+): Promise<AxelarQueryAPIFeeResponse> {
+
+  const axelar = new AxelarQueryAPI({
+    environment: Environment.MAINNET,
+  });
+
+  const gmpParams = {
+    showDetailedFees: true,
+    destinationContractAddress: secretContract,
+    sourceContractAddress: polygonContract,
+    tokenSymbol: GasToken.MATIC,
+  };
+
+  return (await axelar.estimateGasFee(
+    EvmChain.POLYGON,
+    "secret-snip",
+    GasToken.MATIC,
+    BigInt(100000),
+    "auto",
+    "0",
+    gmpParams,
+  )) as AxelarQueryAPIFeeResponse;
+}
+
 export default function Hero() {
   const { address, chainId } = useAccount();
-  const { data: walletClient } = useWalletClient({ chainId });
-  const config = getConfig(chainId as NetworkEnum);
+
+  // const config = getConfig(chainId as NetworkEnum);
+
+  const config = new Config();
+
+  console.log('creating client stuff');
+  const secretNetworkClient = new SecretNetworkClient({
+    url: config.getSecretNetwork().endpoint,
+    chainId: config.getSecretNetwork().chainId,
+  });
+
+  const secretDocument = new SecretDocumentSmartContract({
+    chainId: config.getSecretNetwork().chainId,
+    client: secretNetworkClient,
+    contract: config.getShareDocument(),
+  });
 
   interface IFormValues {
     file: File | null;
@@ -27,26 +91,118 @@ export default function Hero() {
     file: null,
   };
 
+  const { data: walletClient } = useWalletClient({ chainId });
+
   const onSubmit = async (
     values: IFormValues,
     { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }
   ) => {
+    if (!walletClient) {
+      throw Error('walletClient is null');
+    }
     console.log("values", values.file?.name);
     console.log("destination chain", process.env.NEXT_PUBLIC_DESTINATION_CHAIN);
+
+    console.log('generating sym key');
+    const symKey = generateSymmetricKey();
+
+    if (values.file === null) {
+      throw Error('values.file is null');
+    }
+    const bufferData = Buffer.from(await values.file.arrayBuffer());
+    console.log('Encrypting data');
+
+    const encryptedFile = SymmetricKeyEncryption.encrypt(
+      bufferData, symKey
+    );
+    console.log('Encrypted:', encryptedFile);
+    // TODO upload data to IPFS
+    console.log('Storing file');
+    const storage = new FakeStorage();
+    const storageLink = await storage.upload(
+      encryptedFile, 
+      { contentType: values.file.type },
+    );
+
+    // Create payload for secret contract
+    const payload = {
+      url: storageLink,
+      symmetricKey: symKey,
+    };
+
+    // generate signature
+    const signature = await walletClient.signMessage({
+      account: address,
+      message: 'SECRET_PERMIT_DATA',
+    });
+    console.log('SIGNATURE', permit);
+
+    // Create complete secret contract msg
+    const fullMsg = {
+      with_permit: {
+        permit: {
+          signature: {
+            pub_key: {
+              type: 'tendermint/PubKeySecp256k1',
+              value: walletClient.publicKey,
+            },
+            signature: signature.replace('0x', ''),
+          }
+        },
+        execute: {
+          store_new_file: {
+            payload: JSON.stringify(payload),
+          },
+        },
+      },
+    };
+
+    // Get the public key of the smart contract deployed on Secret Network
+    const secretPubKey = await secretDocument.getPublicKey();
+    console.log('secret pubkey', secretPubKey);
+
+    // Generate local asymmetric keys as "anonymous" user
+    const ECDHKeys = ECDHEncryption.generate();
+
+    console.log('ECDH Pubkey', ECDHKeys.publicKey);
+
+    const sharedKey = ECDHEncryption.generateSharedKey(
+      secretPubKey,
+      ECDHKeys.privateKey,
+    );
+    console.log('sharedKey', sharedKey);
+
+    const encryptedMessage = await ECDHEncryption.encrypt(
+      fullMsg,
+      sharedKey,
+    );
+    console.log('encryptedMessage', encryptedMessage);
+
+    console.log('Estimating gas');
+    const gasEstimate = await getEstimateFee(
+      config.getShareDocument().address,
+      config.getPolygonToSecret().address,
+    );
+    console.log('Estimate: ', gasEstimate);
 
     let tx;
     if (isConnected && address) {
       try {
+        const locConfig = getConfig(chainId as NetworkEnum);
         tx = await walletClient?.writeContract({
-          address: config.contracts.talentLayerId,
+          address: locConfig.contracts.polygonToSecret,
           abi: PolygonToSecret.abi,
           functionName: "send",
           args: [
             process.env.NEXT_PUBLIC_DESTINATION_CHAIN,
-            config.contracts.polygonToSecret,
-            values.file?.name,
+            locConfig.contracts.secretKeyStoreContract,
+            {
+              payload: Array.from(encryptedMessage),
+              public_key: Array.from(ECDHKeys.publicKey),
+            },
           ],
           account: address,
+          value: BigInt(gasEstimate.baseFee) + BigInt(gasEstimate.executionFee),
         });
 
         console.log(tx);

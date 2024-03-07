@@ -21,7 +21,6 @@ interface IClientConfig {
     secretNetwork: {
       chainId: string;
       endpoint: string;
-      faucetEndpoint: string;
     };
   };
   contracts: {
@@ -30,10 +29,6 @@ interface IClientConfig {
   };
   storage: IStorage;
   env: Environment;
-  wallets: {
-    secretNetwork: ISecretNewtorkWallet;
-    polygon: IViemWallet;
-  };
 }
 
 class Config {
@@ -43,37 +38,28 @@ class Config {
   constructor(config: Partial<IClientConfig> = {}) {
     const emptyConfig: IClientConfig = {
       storage: new FakeStorage(),
-      env: Environment.LOCAL,
+      env: Environment.MAINNET,
       contracts: {
         PolygonToSecret: {
-          address: "",
+          address: "0x5F3BA1c07b1D550b27Dd2653D2B77d3B673Dd252",
           abi: PolygonToSecretAbi.abi,
         },
         ShareDocument: {
-          address: "",
-          hash: "",
+          address: "secret1a6f0kln5xxj8p2pwfpkh94er39rn8zg0xlmwd8",
+          hash: "13dbf50722df90697d7c8eb15c76bcac56281839a224e946d34c91b528150a3e",
         },
       },
       chains: {
         secretNetwork: {
-          chainId: "",
-          endpoint: "",
-          faucetEndpoint: "", // Only need for SecretNetworkIntergration to fill up faucet. Maybe to be removed.
+          chainId: "secret-4",
+          endpoint: "https://loadbalancer1.api.securesecrets.org",
         },
         polygon: {
-          chainId: "",
-        },
-      },
-      wallets: {
-        secretNetwork: {
-          mnemonic: "",
-        },
-        polygon: {
-          mnemonic: "",
+          chainId: "137",
         },
       },
     };
-    this.env = config.env || Environment.LOCAL;
+    this.env = config.env || Environment.MAINNET;
     this.config = {
       ...emptyConfig,
       ...this.defaultConfig(this.env),
@@ -102,19 +88,13 @@ class Config {
   }
 
   getChainId(env: Environment = null): Network {
-    let nodeEnv = this.env || Environment.LOCAL;
+    let nodeEnv = this.env || Environment.MAINNET;
 
     if (env !== null) {
       nodeEnv = env;
     }
 
-    switch (nodeEnv) {
-      case Environment.LOCAL:
-      case Environment.TESTNET:
-        return Network.MUMBAI;
-      case Environment.MAINNET:
-        return Network.POLYGON;
-    }
+    return Network.POLYGON;
   }
 
   getChain(networkId: Network) {
@@ -138,13 +118,13 @@ class Config {
     return chains[chainKey as keyof typeof Network];
   }
 
+  /*
   defaultLocalConfig(): Partial<IClientConfig> {
     return {
       chains: {
         secretNetwork: {
           chainId: "secretdev-1",
           endpoint: "http://localhost:1317",
-          faucetEndpoint: "http://localhost:5000",
         },
         polygon: {
           chainId: Network.MUMBAI.toString(),
@@ -160,14 +140,6 @@ class Config {
           hash: "",
         },
       },
-      wallets: {
-        secretNetwork: {
-          mnemonic: process.env.SECRET_NETWORK_WALLET_MNEMONIC,
-        },
-        polygon: {
-          mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
-        },
-      },
     };
   }
 
@@ -177,7 +149,6 @@ class Config {
         secretNetwork: {
           chainId: "pulsar-3",
           endpoint: "https://api.pulsar.scrttestnet.com",
-          faucetEndpoint: "https://faucet.pulsar.scrttestnet.com",
         },
         polygon: {
           chainId: Network.MUMBAI.toString(),
@@ -193,26 +164,38 @@ class Config {
           hash: "c6ac12674e76ff7a2d48e3fbac06bb937aab5f554a380b35e53119b182c28228",
         },
       },
-      wallets: {
+    };
+  }
+  */
+  defaultMainnetConfig(): Partial<IConfig> {
+    return {
+      contracts: {
+        PolygonToSecret: {
+          address: "0x5F3BA1c07b1D550b27Dd2653D2B77d3B673Dd252",
+          abi: PolygonToSecretAbi.abi,
+        },
+        ShareDocument: {
+          address: "secret1a6f0kln5xxj8p2pwfpkh94er39rn8zg0xlmwd8",
+          hash: "13dbf50722df90697d7c8eb15c76bcac56281839a224e946d34c91b528150a3e",
+        },
+      },
+      chains: {
         secretNetwork: {
-          mnemonic: process.env.SECRET_NETWORK_WALLET_MNEMONIC,
+          chainId: "secret-4",
+          endpoint: "https://loadbalancer1.api.securesecrets.org",
         },
         polygon: {
-          mnemonic: process.env.POLYGON_WALLET_MNEMONIC,
+          chainId: "137",
         },
       },
     };
   }
 
-  private defaultConfig(env: Environment): Partial<IConfig> {
-    switch (env) {
-      case Environment.LOCAL:
-        return this.defaultLocalConfig();
-      case Environment.TESTNET:
-        return this.defaultTestnetConfig();
-    }
+  private defaultConfig(env: Environment): Partial<IClientConfig> {
+    return this.defaultMainnetConfig();
   }
 
+  /*
   useEvmWallet(wallet: IViemWallet) {
     this.config.wallets.polygon = wallet;
   }
@@ -228,6 +211,7 @@ class Config {
   getSecretNetworkWallet(): ISecretNewtorkWallet {
     return this.config.wallets.secretNetwork;
   }
+  */
 
   usePolygonToSecret(contract: IPolygonSmartContract) {
     this.config.contracts.PolygonToSecret = contract;

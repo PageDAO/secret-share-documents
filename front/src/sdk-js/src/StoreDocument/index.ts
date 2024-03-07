@@ -5,11 +5,12 @@ import IEncryptedMessage from "./IEncryptedMessage";
 import IStorage from "./Storage/IStorage";
 import PolygonToSecretSmartContract from "../SmartContract/PolygonToSecretSmartContract";
 import SecretDocumentSmartContract from "../SmartContract/SecretDocumentSmartContract";
+import { useAccount, useWalletClient } from "wagmi";
 
 interface Props {
-    secretDocument: SecretDocumentSmartContract;
-    polygonToSecret: PolygonToSecretSmartContract;
-    storage: IStorage;
+  secretDocument: SecretDocumentSmartContract;
+  polygonToSecret: PolygonToSecretSmartContract;
+  storage: IStorage;
 }
 
 class StoreDocument {
@@ -24,20 +25,24 @@ class StoreDocument {
   }
 
   async getEncryptedMessage(
+    address: `0x${string}`,
     bufferData: Buffer,
     uploadOptions: IUploadOptions,
   ): Promise<IEncryptedMessage> {
     // Locally generate a symmetric key to encrypt the uploaded data.
     const localSymmetricKey = SymmetricKeyEncryption.generate();
+    console.log('sym key', localSymmetricKey);
 
     // Encrypt the document with the symmetric key.
     const encryptedData = SymmetricKeyEncryption.encrypt(
       bufferData,
       localSymmetricKey,
     );
+    console.log('enc data', encryptedData);
 
     // Send the encrypted document to Arweave or IPFS and retrieve the access link.
     const storageLink = await this.storage.upload(encryptedData, uploadOptions);
+    console.log('storageLink', storageLink);
 
     // Create a JSON file that bundles the information to be stored on Secret Network,
     // including the storage link and the symmetric key (generated locally) used to encrypt the data.
@@ -56,7 +61,12 @@ class StoreDocument {
       ECDHKeys.privateKey,
     );
 
-    const shareDocumentPermit = await this.secretDocument.generatePermit();
+    // const shareDocumentPermit = await this.secretDocument.generatePermit();
+    const shareDocumentPermit = this.polygonToSecret.viemClient.walletClient.signMessage({
+      account: address,
+      message: 'SECRET_PERMIT_DATA',
+    });
+    console.log('PERMIT', shareDocumentPermit);
 
     // Build new JSON with permit + the ECDH public key.
     const payloadWithPermit = {
@@ -86,8 +96,8 @@ class StoreDocument {
     encryptedMessage: IEncryptedMessage,
   ): Promise<string> {
     const payload = {
-      source_chain: "test-chain",
-      source_address: "test-address",
+      source_chain: "",
+      source_address: "",
       payload: encryptedMessage,
     };
 
@@ -106,6 +116,7 @@ class StoreDocument {
     };
   }
 
+  /*
   async fromUrl(fileUrl: string): Promise<string> {
     // Fetch the document and prepare upload options.
     // const response = await fetch(fileUrl);
@@ -128,12 +139,15 @@ class StoreDocument {
     );
     return this.storeEncryptedMessage(encryptedMessage);
   }
+  */
 
-  async fromFile(file: File): Promise<string> {
+  async fromFile(address: `0x${string}`, file: File): Promise<string> {
     const bufferData = Buffer.from(await file.arrayBuffer());
-    const encryptedMessage = await this.getEncryptedMessage(bufferData, {
-      contentType: file.type,
-    });
+    const encryptedMessage = await this.getEncryptedMessage(
+      address, 
+      bufferData, 
+      { contentType: file.type },
+    );
     console.log({ encryptedMessage });
     return this.storeEncryptedMessage(encryptedMessage);
   }

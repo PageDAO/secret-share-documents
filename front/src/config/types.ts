@@ -7,6 +7,7 @@ export type IToken = {
 };
 
 export enum NetworkEnum {
-  LOCAL = 1337,
-  MUMBAI = 80001,
+  // LOCAL = 1337,
+  // MUMBAI = 80001,
+  MAINNET = 137,
 }

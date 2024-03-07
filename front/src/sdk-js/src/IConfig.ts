@@ -11,7 +11,6 @@ export default interface IConfig {
     secretNetwork: {
       chainId: string;
       endpoint: string;
-      faucetEndpoint: string;
     };
   };
   contracts: {
