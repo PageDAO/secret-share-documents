@@ -103,6 +103,8 @@ class SecretDocumentSmartContract {
 
   
   async generatePermit(): Promise<Permit> {
+    console.log('generating permit');
+    console.log('wallet address', this.wallet.address);
     return await this.client.utils.accessControl.permit.sign(
       this.wallet.address,
       this.chainId,

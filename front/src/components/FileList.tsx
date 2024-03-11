@@ -13,9 +13,9 @@ export default function FileList() {
   const [ids, setIds] = useState<string[]>([]);
   const [selectedDocument, setSelectedDocument] = useState(null);
   const config = new Config();
-  const CurrentWallet = useWalletClient();
 
   const wallet = new Wallet(process.env.SECRET_NETWORK_WALLET_MNEMONIC);
+  console.log('wallet',wallet);
 
   const secretNetworkClient = new SecretNetworkClient({
     url: config.getSecretNetwork().endpoint,
@@ -28,13 +28,14 @@ export default function FileList() {
     chainId: config.getSecretNetwork().chainId,
     client: secretNetworkClient,
     contract: config.getShareDocument(),
-    wallet: CurrentWallet,
+    wallet: wallet,
   });
 
   useEffect(() => {
     const fetchIds = async () => {
         const allIds = await secretDocument.findAll();
         setIds(allIds);
+        console.log('allIds',allIds);
     };
 
     fetchIds();

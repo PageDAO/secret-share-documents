@@ -137,7 +137,6 @@ export default function Hero() {
       account: address,
       message: 'SECRET_PERMIT_DATA',
     });
-    console.log('SIGNATURE', permit);
 
     // Create complete secret contract msg
     const fullMsg = {
@@ -158,6 +157,8 @@ export default function Hero() {
         },
       },
     };
+    
+    console.log('Full Msg', fullMsg);
 
     // Get the public key of the smart contract deployed on Secret Network
     const secretPubKey = await secretDocument.getPublicKey();

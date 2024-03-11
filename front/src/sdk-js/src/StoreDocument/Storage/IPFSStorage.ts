@@ -16,7 +16,9 @@ class IPFSStorage implements IStorage {
   public pinFileToIPFS = async (file, filename) => {
     try {
       let data = new FormData();
-      data.append('file', file, filename)
+      // convert file to a blob
+      const blob = new Blob([file]);
+      data.append('file', blob, filename)
       const res = await axios.post(ipfsFileApiUrl,
         data,
         {
