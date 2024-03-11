@@ -25,9 +25,11 @@ import SecretDocumentSmartContract from "../sdk-js/src/SmartContract/SecretDocum
 import { SecretNetworkClient } from "secretjs";
 
 import Config from "../sdk-js/src/Config";
-import FakeStorage from "../sdk-js/src/StoreDocument/Storage/FakeStorage";
+//import FakeStorage from "../sdk-js/src/StoreDocument/Storage/FakeStorage";
+import IPFSStorage from "@/sdk-js/src/StoreDocument/Storage/IPFSStorage";
 
 import SymmetricKeyEncryption from "../sdk-js/src/StoreDocument/Encryption/SymmetricKeyEncryption";
+import FileList from "./FileList";
 
 function generateSymmetricKey() {
   return SymmetricKeyEncryption.generate();
@@ -118,7 +120,7 @@ export default function Hero() {
     console.log('Encrypted:', encryptedFile);
     // TODO upload data to IPFS
     console.log('Storing file');
-    const storage = new FakeStorage();
+    const storage = new IPFSStorage(); // new FakeStorage();
     const storageLink = await storage.upload(
       encryptedFile, 
       { contentType: values.file.type },
@@ -220,6 +222,7 @@ export default function Hero() {
   return (
     <div className="bg-white">
       {/* Hero section */}
+      <FileList />
       <div className="relative">
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-white" />
         <div className="mx-auto py-10 max-w-7xl sm:px-6 lg:px-8">
