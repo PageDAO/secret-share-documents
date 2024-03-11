@@ -15,7 +15,7 @@ function Menu() {
               <Image
                 className=""
                 src="/logo.png"
-                width={70}
+                width={100}
                 height={70}
                 alt=""
               />
