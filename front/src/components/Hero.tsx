@@ -126,6 +126,8 @@ export default function Hero() {
       { contentType: values.file.type },
     );
 
+    console.log('Storage link', storageLink);
+
     // Create payload for secret contract
     const payload = {
       url: storageLink,

@@ -10,15 +10,14 @@ class IPFSStorage implements IStorage {
     encryptedData: IEncryptedData,
     options: IUploadOptions,
   ): Promise<any> {
-      this.pinFileToIPFS(encryptedData.data, 'filename.pdf')
+      return this.pinFileToIPFS(encryptedData.data, 'anyfilename');
   }
 
   public pinFileToIPFS = async (file, filename) => {
     try {
       let data = new FormData();
-      // convert file to a blob
-      const blob = new Blob([file]);
-      data.append('file', blob, filename)
+
+      data.append('file', new Blob([file]), filename)
       const res = await axios.post(ipfsFileApiUrl,
         data,
         {
@@ -28,6 +27,7 @@ class IPFSStorage implements IStorage {
         }
       );
       console.log(res.data);
+      return res.data.Hash;
     } catch (error) {
       console.log(error);
     }

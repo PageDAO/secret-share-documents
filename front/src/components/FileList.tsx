@@ -47,19 +47,28 @@ export default function FileList() {
     };
 
   return (
-    <div>
-      <ul>
-        {ids.map(id => (
-          <li key={id} onClick={() => handleIdClick(id)} style={{cursor: 'pointer'}}>
-            {id}
-          </li>
-        ))}
-      </ul>
-      {selectedDocument && (
-        <div>
-           <pre>{JSON.stringify(selectedDocument, null, 2)}</pre>
+    <div className="relative">
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-white" />
+        <div className="mx-auto py-10 max-w-7xl sm:px-6 lg:px-8">
+          <div className="relative shadow-xl sm:overflow-hidden sm:rounded-2xl">
+            <h2><span className="block text-indigo-200">
+              Saved Files:
+            </span>
+            </h2>
+            <ul>
+              {ids.map(id => (
+                <li key={id} onClick={() => handleIdClick(id)} style={{cursor: 'pointer'}}>
+                  {id}
+                </li>
+              ))}
+            </ul>
+            {selectedDocument && (
+              <div>
+                <pre>{JSON.stringify(selectedDocument, null, 2)}</pre>
+              </div>
+            )}
+          </div>
         </div>
-      )}
     </div>
   );
 }
